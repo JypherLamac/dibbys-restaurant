@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Reviews - Dibby's Restaurant</title>
+    <link rel="stylesheet" href="../assets/css/style.css">
+    <style>
+        .feedback-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .feedback-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            margin-top: 2rem;
+        }
+        .star-rating { 
+            display: flex; 
+            gap: 5px; 
+            margin: 10px 0; 
+        }
+        .star { 
+            font-size: 2rem; 
+            cursor: pointer; 
+            color: #ddd; 
+            transition: color 0.2s;
+        }
+        .star:hover,
+        .star.active { 
+            color: #ffd700; 
+        }
+        .feedback-form {
+            background: #f9f9f9;
+            padding: 2rem;
+            border-radius: 10px;
+        }
+        .feedback-list {
+            max-height: 600px;
+            overflow-y: auto;
+            padding-right: 1rem;
+        }
+        .feedback-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .feedback-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .user-name {
+            font-weight: bold;
+            color: #2E8B57;
+        }
+        .feedback-date {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .feedback-rating {
+            color: #ffd700;
+            margin-bottom: 0.5rem;
+            font-size: 1.2rem;
+        }
+        .feedback-comment {
+            color: #333;
+            line-height: 1.5;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+        textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        .submit-btn {
+            background: #2E8B57;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            width: 100%;
+        }
+        .submit-btn:hover {
+            background: #246b44;
+        }
+        .message {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .no-reviews {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="logo">Dibby's Restaurant</div>
+            <ul>
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="menu.html">Menu</a></li>
+                <li><a href="cart.html">Cart</a></li>
+                <li><a href="feedback.html" class="active">Reviews</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main class="feedback-container">
+        <h1>Customer Reviews</h1>
+        <p>See what our customers are saying about us!</p>
+        
+        <div class="feedback-layout">
+            <!-- Submit Feedback Form -->
+            <section class="feedback-form">
+                <h2>Share Your Experience</h2>
+                <form id="feedbackForm">
+                    <div class="form-group">
+                        <label>Your Rating:</label>
+                        <div class="star-rating">
+                            <span class="star" data-rating="1">⭐</span>
+                            <span class="star" data-rating="2">⭐</span>
+                            <span class="star" data-rating="3">⭐</span>
+                            <span class="star" data-rating="4">⭐</span>
+                            <span class="star" data-rating="5">⭐</span>
+                        </div>
+                        <input type="hidden" id="rating" name="rating" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="comment">Your Review:</label>
+                        <textarea id="comment" name="comment" rows="5" 
+                                placeholder="What did you think of our food and service? Share your experience with others..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">Submit Review</button>
+                </form>
+                <div id="feedback-message"></div>
+            </section>
+
+            <!-- Public Reviews Display -->
+            <section class="public-reviews">
+                <h2>What Our Customers Say</h2>
+                <div class="feedback-list" id="feedback-list">
+                    <div class="no-reviews">Loading reviews...</div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = 'http://localhost/dibbys-restaurant/backend/api';
+
+        // Star rating functionality
+        let currentRating = 0;
+        
+        document.querySelectorAll('.star').forEach(star => {
+            // Click event
+            star.addEventListener('click', function() {
+                currentRating = parseInt(this.getAttribute('data-rating'));
+                document.getElementById('rating').value = currentRating;
+                updateStarDisplay();
+            });
+            
+            // Hover events for better UX
+            star.addEventListener('mouseover', function() {
+                const hoverRating = parseInt(this.getAttribute('data-rating'));
+                document.querySelectorAll('.star').forEach(s => {
+                    const starRating = parseInt(s.getAttribute('data-rating'));
+                    s.style.color = starRating <= hoverRating ? '#ffd700' : '#ddd';
+                });
+            });
+        });
+
+        // Reset stars when not hovering
+        document.querySelector('.star-rating').addEventListener('mouseleave', function() {
+            updateStarDisplay();
+        });
+
+        function updateStarDisplay() {
+            document.querySelectorAll('.star').forEach(s => {
+                const starRating = parseInt(s.getAttribute('data-rating'));
+                s.style.color = starRating <= currentRating ? '#ffd700' : '#ddd';
+            });
+        }
+
+        // Load public reviews
+        async function loadFeedbacks() {
+            try {
+                const response = await fetch(`${API_BASE}/feedback/get_feedbacks.php`);
+                const data = await response.json();
+                
+                const feedbackList = document.getElementById('feedback-list');
+                
+                if (data.success && data.feedbacks.length > 0) {
+                    feedbackList.innerHTML = data.feedbacks.map(feedback => `
+                        <div class="feedback-item">
+                            <div class="feedback-header">
+                                <span class="user-name">${feedback.user_name}</span>
+                                <span class="feedback-date">${new Date(feedback.date).toLocaleDateString()}</span>
+                            </div>
+                            <div class="feedback-rating">
+                                ${'⭐'.repeat(feedback.rating)}${'☆'.repeat(5 - feedback.rating)}
+                                <span style="color: #666; font-size: 0.9rem; margin-left: 10px;">${feedback.rating}/5</span>
+                            </div>
+                            <p class="feedback-comment">"${feedback.comment}"</p>
+                        </div>
+                    `).join('');
+                } else {
+                    feedbackList.innerHTML = '<div class="no-reviews">No reviews yet. Be the first to share your experience!</div>';
+                }
+            } catch (error) {
+                console.error('Error loading feedbacks:', error);
+                feedbackList.innerHTML = '<div class="error">Error loading reviews. Please try again later.</div>';
+            }
+        }
+
+        // Submit feedback
+        document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (currentRating === 0) {
+                document.getElementById('feedback-message').innerHTML = 
+                    '<div class="error">Please select a rating</div>';
+                return;
+            }
+
+            const feedbackData = {
+                user_id: 1, // In real app, use logged-in user ID
+                rating: currentRating,
+                comment: document.getElementById('comment').value.trim()
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/feedback/submit_feedback.php`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(feedbackData)
+                });
+
+                const result = await response.json();
+                const messageDiv = document.getElementById('feedback-message');
+                
+                if (result.success) {
+                    messageDiv.innerHTML = '<div class="success">Thank you for your review! It will appear shortly.</div>';
+                    this.reset();
+                    currentRating = 0;
+                    updateStarDisplay();
+                    
+                    // Reload the feedback list to show the new review
+                    setTimeout(loadFeedbacks, 500);
+                } else {
+                    messageDiv.innerHTML = `<div class="error">${result.message}</div>`;
+                }
+            } catch (error) {
+                document.getElementById('feedback-message').innerHTML = 
+                    `<div class="error">Error submitting review. Please try again.</div>`;
+            }
+        });
+
+        // Load reviews when page opens
+        loadFeedbacks();
+    </script>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feedback Management - Dibby's Admin</title>
+    <link rel="stylesheet" href="../assets/css/admin.css">
+    <style>
+        .feedback-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #2E8B57;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .feedback-actions {
+            margin: 1rem 0;
+        }
+        .feedback-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            margin: 1rem 0;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        .feedback-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .feedback-rating {
+            color: #ffd700;
+            font-size: 1.2rem;
+        }
+        .feedback-meta {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .feedback-comment {
+            margin: 1rem 0;
+            line-height: 1.5;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <aside class="sidebar">
+            <div class="logo">Dibby's Admin</div>
+            <nav class="sidebar-nav">
+                <a href="dashboard.html" class="nav-item">Dashboard</a>
+                <a href="menu-management.html" class="nav-item">Menu Management</a>
+                <a href="orders.html" class="nav-item">Orders</a>
+                <a href="feedback-management.html" class="nav-item active">Customer Feedback</a>
+            </nav>
+        </aside>
+        
+        <main class="main-content">
+            <header class="content-header">
+                <h1>Customer Feedback Management</h1>
+                <button onclick="refreshFeedbacks()" class="btn-primary">Refresh</button>
+            </header>
+
+            <!-- Feedback Statistics -->
+            <div class="feedback-stats">
+                <div class="stat-card">
+                    <h3>Total Reviews</h3>
+                    <p class="stat-number" id="total-reviews">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Average Rating</h3>
+                    <p class="stat-number" id="average-rating">0.0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>5-Star Reviews</h3>
+                    <p class="stat-number" id="five-star">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>This Month</h3>
+                    <p class="stat-number" id="month-reviews">0</p>
+                </div>
+            </div>
+
+            <!-- Feedback List -->
+            <div class="feedback-actions">
+                <h2>All Customer Feedback</h2>
+            </div>
+            
+            <div id="feedback-list">
+                <!-- Feedback items loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API_BASE = '../../backend/api';
+
+        // Load all feedbacks
+        async function loadFeedbacks() {
+            try {
+                const response = await fetch(`${API_BASE}/feedback/get_feedbacks.php`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayFeedbacks(data.feedbacks);
+                    updateStats(data.feedbacks);
+                }
+            } catch (error) {
+                console.error('Error loading feedbacks:', error);
+            }
+        }
+
+        // Display feedbacks
+        function displayFeedbacks(feedbacks) {
+            const container = document.getElementById('feedback-list');
+            
+            if (feedbacks.length === 0) {
+                container.innerHTML = '<p>No feedback yet.</p>';
+                return;
+            }
+
+            container.innerHTML = feedbacks.map(feedback => `
+                <div class="feedback-item">
+                    <div class="feedback-header">
+                        <div>
+                            <strong>${feedback.user_name}</strong>
+                            <span class="feedback-meta"> - ${new Date(feedback.date).toLocaleString()}</span>
+                        </div>
+                        <div class="feedback-rating">
+                            ${'⭐'.repeat(feedback.rating)} (${feedback.rating}/5)
+                        </div>
+                    </div>
+                    <div class="feedback-comment">
+                        <p>"${feedback.comment}"</p>
+                    </div>
+                    <div class="feedback-actions">
+                        <button class="btn-danger" onclick="deleteFeedback(${feedback.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Update statistics
+        function updateStats(feedbacks) {
+            const total = feedbacks.length;
+            const average = total > 0 ? (feedbacks.reduce((sum, f) => sum + f.rating, 0) / total).toFixed(1) : '0.0';
+            const fiveStar = feedbacks.filter(f => f.rating === 5).length;
+            const thisMonth = feedbacks.filter(f => {
+                const feedbackDate = new Date(f.date);
+                const now = new Date();
+                return feedbackDate.getMonth() === now.getMonth() && feedbackDate.getFullYear() === now.getFullYear();
+            }).length;
+
+            document.getElementById('total-reviews').textContent = total;
+            document.getElementById('average-rating').textContent = average;
+            document.getElementById('five-star').textContent = fiveStar;
+            document.getElementById('month-reviews').textContent = thisMonth;
+        }
+
+        // Delete feedback
+        async function deleteFeedback(feedbackId) {
+            if (!confirm('Are you sure you want to delete this feedback?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/admin/delete_feedback.php`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ id: feedbackId })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Feedback deleted successfully');
+                    loadFeedbacks(); // Refresh the list
+                } else {
+                    alert('Error deleting feedback: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error deleting feedback:', error);
+            }
+        }
+
+        function refreshFeedbacks() {
+            loadFeedbacks();
+        }
+
+        // Load feedbacks on page load
+        loadFeedbacks();
+    </script>
+</body>
+</html>

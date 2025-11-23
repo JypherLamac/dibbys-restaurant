@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dibby's Restaurant - Order Online</title>
+</head>
+<body>
+    <header>
+        <h1>Dibby's Restaurant</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="menu.html">Menu</a>
+            <a href="cart.html">Cart</a>
+            <a href="../admin/index.html">Staff Login</a>
+        </nav>
+    </header>
+    
+    <div id="menu-container">
+        <!-- Menu items loaded from your PHP API -->
+    </div>
+    
+    <script>
+        // Use your working APIs
+        async function loadMenu() {
+            const response = await fetch('../api/menu/get_items.php');
+            const data = await response.json();
+            // Display menu to customers
+        }
+    </script>
+</body>
+</html>
