@@ -4,7 +4,7 @@ class Database {
     private $port = "3307";
     private $db_name = "dibbys_restaurant_db";
     private $username = "root";
-    private $password = "CJYL@lmc_26";
+    private $password = "";
     public $conn;
 
     public function getConnection() {
